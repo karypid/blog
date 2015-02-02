@@ -3,26 +3,30 @@ package movie
 import akka.actor.ActorRef
 import akka.actor.Actor
 
-case class Role(val character: String) {
-  require(character != null)
-
-  override def toString = character
-}
-
-object Script {
+object Movie {
   type Line = Tuple2[ActorRef, String]
   type Scene = Seq[Line]
 
-  def apply(scene: String, roles: Map[ActorRef, Role], lines: Line*): Script = {
-    new Script(scene, roles, lines)
+  case class Role(val character: String) {
+    require(character != null)
+
+    override def toString = character
+  }
+
+  class Action(val it: BufferedIterator[Line]) {}
+
+  class Script private (val scene: String, val roles: Map[ActorRef, Role], val lines: Scene) {}
+
+  object Script {
+    def apply(scene: String, roles: Map[ActorRef, Role], lines: Line*): Script = {
+      new Script(scene, roles, lines)
+    }
   }
 }
 
-class Script private (val scene: String, val roles: Map[ActorRef, Role], val lines: Script.Scene) {}
-case class Action(val it: BufferedIterator[Script.Line]) {}
-
 class MovieActor(val name: String) extends Actor {
   import context._
+  import Movie._
 
   require(name != null)
   private var character: Option[Role] = None
@@ -36,7 +40,8 @@ class MovieActor(val name: String) extends Actor {
           character = Some(role)
           val line = s.lines.head
           if (line._1 == self) {
-            self ! new Action(s.lines.iterator.buffered)
+            val it = s.lines.iterator
+            self ! new Action(it.buffered)
           }
       }
     }
