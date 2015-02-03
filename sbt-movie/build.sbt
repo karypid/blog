@@ -1,26 +1,17 @@
-import Dependencies._
+version := "0.0.1"
+
+scalaVersion  := "2.11.4"
+
+name := "big-lebowski-movie"
+
+resolvers += Opts.resolver.mavenLocalFile
 
 resolvers += "Typesafe Releases" at "http://repo.typesafe.com/typesafe/releases/"
 
-lazy val movieCommon = (project in file("movie-common")).
-  settings(Commons.settings: _*).
-  settings(
-    name := "movie-common",
-    libraryDependencies ++= commonDependencies
+libraryDependencies ++= {
+  val akkaV = "2.3.8"
+  Seq(
+    "com.typesafe.akka"          %%  "akka-actor"              % akkaV
   )
-
-lazy val cast = (project in file("big-lebowski-cast")).
-  settings(Commons.settings: _*).
-  settings(
-    name := "big-lebowski-cast",
-    libraryDependencies ++= commonDependencies
-  ).
-  dependsOn(movieCommon)
-
-lazy val bigLebowski = (project in file("big-lebowski")).
-  settings(Commons.settings: _*).
-  settings(
-    name := "big-lebowski"
-  ).
-  dependsOn(cast)
+}
 
