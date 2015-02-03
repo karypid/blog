@@ -1,17 +1,17 @@
 package movie
 
-import akka.actor.ActorRef
 import akka.actor.Actor
+import akka.actor.ActorRef
+import akka.actor.actorRef2Scala
 
 object Movie {
-  type Line = Tuple2[ActorRef, String]
-  type Scene = Seq[Line]
-
   case class Role(val character: String) {
     require(character != null)
-
     override def toString = character
   }
+
+  type Line = Tuple2[Role, String]
+  type Scene = Seq[Line]
 
   class Action(val it: BufferedIterator[Line]) {}
 
@@ -30,16 +30,18 @@ class MovieActor(val name: String) extends Actor {
 
   require(name != null)
   private var character: Option[Role] = None
+  private var roleActors = Map[Role, ActorRef]()
 
   def receive = {
     case s: Script => {
       val role = s.roles(self)
+      roleActors = s.roles.map(_.swap)
       println(s"${name} got script for scene '${s.scene}'; his role is '${role.character}'")
       role match {
         case role: Role =>
           character = Some(role)
           val line = s.lines.head
-          if (line._1 == self) {
+          if (roleActors(line._1) == self) {
             val it = s.lines.iterator
             self ! new Action(it.buffered)
           }
@@ -55,7 +57,8 @@ class MovieActor(val name: String) extends Actor {
     val line = action.it.next()
     println(s"${character.get}: ${line._2}")
     if (action.it.hasNext) {
-      action.it.head._1 ! action
+      val actor = roleActors(action.it.head._1)
+      actor ! action
     } else {
       system.shutdown()
     }
